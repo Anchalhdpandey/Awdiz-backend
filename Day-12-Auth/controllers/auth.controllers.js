@@ -24,15 +24,6 @@ export const Register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 1st type to store data in mongodb
-    // const newUser = await UserSchema.create({
-    //   name: name,
-    //   email: email,
-    //   password: hashedPassword,
-    // });
-
-    // 2nd type to store data in mongodb
     const newUser = new UserSchema({
       name: name,
       email: email,
