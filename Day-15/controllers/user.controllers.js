@@ -1,6 +1,7 @@
 import UserSchema from "../schemas/user.schema.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import Cart from "../schemas/cart.schema.js";
 
 export const register = async (req, res) => {
   try {
@@ -75,7 +76,12 @@ export const login = async (req, res) => {
     return res.json({
       success: true,
       message: "Login Successfull.",
-      userData: user,
+      userData: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        _id: user._id,
+      },
     });
   } catch (error) {
     console.log(error, "error");
@@ -113,3 +119,67 @@ export const validateToken = async (req, res) => {
     return res.json({ error, success: false });
   }
 };
+
+export const Logout = async (req, res) => {
+  try {
+    res.cookie("token", "");
+    return res.json({ success: true, message: "Logout Sucessfull." });
+  } catch (error) {
+    console.log(error, "error");
+    return res.json({ error, success: false });
+  }
+};
+
+export const addToCart = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    if (!userId || !productId) {
+      return res.json({ success: false, message: "All fields are required." });
+    }
+
+    let cart = await Cart.findOne({ user: userId });
+
+    if (cart) {
+      const productIndex = cart.products.findIndex(p => p.product.toString() === productId);
+
+      if (productIndex > -1) {
+        cart.products[productIndex].quantity += 1;
+      } else {
+        cart.products.push({ product: productId });
+      }
+    } else {
+      cart = new Cart({
+        user: userId,
+        products: [{ product: productId }],
+      });
+    }
+
+    await cart.save();
+    return res.json({ success: true, message: "Product successfully added to cart." });
+  } catch (error) {
+    return res.json({ success: false, error });
+  }
+};
+
+export const getCart = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.json({ success: false, message: "User ID is required." });
+    }
+
+    const cart = await Cart.findOne({ user: userId }).populate("products.product");
+
+    if (!cart) {
+      return res.json({ success: false, message: "Cart not found." });
+    }
+
+    return res.json({ success: true, cart });
+  } catch (error) {
+    return res.json({ success: false, error });
+  }
+};
+
+
